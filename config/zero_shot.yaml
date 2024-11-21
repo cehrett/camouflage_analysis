@@ -1,0 +1,5 @@
+# zero_shot.yaml
+# Parameters specific to the zero-shot classification module
+
+model_name: 'facebook/bart-large-mnli'
+threshold: 0.5

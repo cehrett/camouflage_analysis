@@ -1,0 +1,6 @@
+pandas
+scikit-learn
+transformers
+ipykernel
+pytest
+bertopic

@@ -169,3 +169,8 @@ cython_debug/
 
 # PyPI configuration file
 .pypirc
+__pycache__/
+data/raw/
+data/processed/
+output/
+>>>>>>> fbd37c2 (Implemented BerTopic and ZSClassification via NLI)

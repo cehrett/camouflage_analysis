@@ -1,0 +1,15 @@
+[project]
+name = "camouflage_analysis"
+version = "0.1"
+dependencies = [
+    "pandas",
+    "scikit-learn",
+    "transformers",
+    "ipykernel",
+    "pytest",
+    "bertopic"
+]
+
+[build-system]
+requires = ["setuptools>=64", "wheel"]
+build-backend = "setuptools.build_meta"

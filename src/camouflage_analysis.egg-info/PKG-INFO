@@ -1,0 +1,9 @@
+Metadata-Version: 2.1
+Name: camouflage_analysis
+Version: 0.1
+Requires-Dist: pandas
+Requires-Dist: scikit-learn
+Requires-Dist: transformers
+Requires-Dist: ipykernel
+Requires-Dist: pytest
+Requires-Dist: bertopic

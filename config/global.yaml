@@ -1,0 +1,6 @@
+# global.yaml
+# Parameters shared across the project
+
+data_path: './data/raw'
+output_path: './output'
+
