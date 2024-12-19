@@ -6,6 +6,7 @@ ipykernel
 pytest
 bertopic
 datasets
+accelerate
 # NVIDIA-specific packages
 --extra-index-url https://pypi.nvidia.com
 cudf-cu12==24.10.*

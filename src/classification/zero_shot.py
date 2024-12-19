@@ -1,8 +1,9 @@
 # zero_shot.py
-# Functions for zero-shot classification (e.g., loading models, labeling data)
+# Functions for zero-shot NLI classification (e.g., loading models, labeling data)
 
-from transformers import AutoTokenizer, AutoModelForSequenceClassification
+from transformers import AutoTokenizer, AutoModelForSequenceClassification, AutoModelForCausalLM
 import torch
+import torch.nn.functional as F
 import pandas as pd
 from tqdm import tqdm  
 from typing import List
@@ -126,8 +127,99 @@ class ZeroShotClassifier:
             df[label] = scores
         
         return df
+    
 
+class CamouflageClassifier:
+    def __init__(self, model_name: str = "meta-llama/Llama-3.2-3B-Instruct", device: str = "cuda"):
+        """
+        Initialize the actionability classification pipeline.
+        
+        Args:
+            model_name (str): Name of the pre-trained model to use.
+            device (str): Device to run the model on ('cpu' or 'cuda').
+        """
+        self.tokenizer = AutoTokenizer.from_pretrained(model_name, padding_side="left")
+        self.tokenizer.pad_token = self.tokenizer.eos_token
+        self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto")
+        self.device = device
+        self.base_messages = [
+            {"role": "system", "content": "You are a helpful assistant that classifies social media posts as either \"Camouflage\" or \"Influence\".\n\n# Background:\nOnline influence campaigns make social media posts of two types. One, \"Influence\", is posts that serve the main purpose of the influence campaign. These are posts that attempt to sway public opinion about some topic of import to the organization perpetrating the influence operation. The other, \"Camouflage\", is posts that serve a secondary purpose. The goal of these posts is to make the accounts in the campaign appear more legitimate. The goal here is to make the posts appear to be coming from an authentic, genuine user, so that the same account's Influence posts will be taken more seriously by readers online.\n\n# Task:\nYour task is as follows. The user will submit a social media post. You respond with either \"Camouflage\" or \"Influence\", followed by a clear summary of why you provided that label."},
+            {"role": "user", "content": "Ready for the freakin' weeken'! 🎉🍻"},
+            {"role": "assistant", "content": "Camouflage. Reason: The post is a casual expression of relatable sentiment about the weekend."},
+            {"role": "user", "content": "Can someone please explain to me why it's okay to call Trump racist but not Harris? ELI5"},
+            {"role": "assistant", "content": "Influence. Reason: The post implies that a particular political stance is hypocritical."},
+            {"role": "user", "content": "Imagine not buying PluffCoin at this point. Why not choose to be rich? I don't get it"},
+            {"role": "assistant", "content": "Influence. Reason: The post is promoting a specific financial investment."},
+            {"role": "user", "content": "Wait a sec... \"Harris, Kamala\" -> \"Harry's common, lol\" -> The Potters are not wizards -> Harry is a muggle -> The whole series is a fever dream confirmed??? makes u think 🤔"},
+            {"role": "assistant", "content": "Camouflage. Reason: The post is a joking, speculative interpretation of a popular cultural reference."},
+            {"role": "user", "content": "Arrrgh no Nintendo! FPS games DO NOT BELONG IN THE ZELDA FRANCHISE! #NotMyZelda #disgusted"},
+            {"role": "assistant", "content": "Camouflage. Reason: The post expresses relatable frustration about a casual matter."},
+        ]
 
+    def classify_batch(self, texts: List[str], batch_size: int = 16) -> List[dict]:
+        """
+        Perform camouflage classification on a batch of texts.
+        
+        Args:
+            texts (List[str]): List of texts to classify.
+            batch_size (int): Number of texts to process in each batch.
+        
+        Returns:
+            List[dict]: List of classification results for each text.
+        """
+        results = []
+        total_batches = (len(texts) + batch_size - 1) // batch_size
+        with tqdm(total=total_batches, desc="Classifying batches", leave=True, bar_format="{l_bar}{bar} | {n_fmt}/{total_fmt}") as pbar:
+            for i in range(0, len(texts), batch_size):
+                batch = texts[i:i + batch_size]
+                batch_messages = [self.base_messages + [{"role": "user", "content": text}] for text in batch]
+                
+                # Tokenize the messages using chat template
+                model_inputs = self.tokenizer.apply_chat_template(
+                    batch_messages,
+                    add_generation_prompt=True,
+                    return_tensors="pt",
+                    padding=True,
+                    return_dict=True
+                ).to(self.device)
+
+                # Run model to get logits and generated output
+                with torch.no_grad():
+                    outputs = self.model.generate(
+                        **model_inputs,
+                        max_new_tokens=20,
+                        return_dict_in_generate=True,
+                        output_scores=True
+                    )
+                    generated_texts = self.tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
+
+                logits = outputs.scores[0]
+
+                # Tokenize the labels "actionable" and "not actionable" to compare logits
+                labels = ["Camouflage.", "Influence."]
+                label_ids = [self.tokenizer.encode(label, add_special_tokens=False)[0] for label in labels]
+
+                # Extract logits for the target labels and apply softmax to get probabilities
+                label_logits = logits[:, label_ids]
+                probabilities = F.softmax(label_logits, dim=-1)
+
+                # Get the probability for "camouflage" and "influence" for each text in the batch
+                camouflage_probs = probabilities[:, 0].tolist()
+                influence_probs = probabilities[:, 1].tolist()
+
+                # Format results
+                for text, cprob, iprob, generated_text in zip(batch, camouflage_probs, influence_probs, generated_texts):
+                    result = {
+                        "text": text,
+                        "camouflage_prob": cprob,
+                        "influence_prob": iprob,
+                        "generated_output": generated_text.split('\n')[-1]
+                    }
+                    results.append(result)
+
+                pbar.update(1)
+
+        return pd.DataFrame(results)
 
 
 def main():
@@ -139,6 +231,8 @@ def main():
         "This product will revolutionize your life!",
         "The weather today is amazing.",
         "You should vote for candidate X in the upcoming election.",
+        "Grrrr can't believe they traded Pasvrainom for a 3rd round pick! Absolutely ridiculous!",
+        "What if babies all had mustaches lol"
     ]
     labels = ["persuasion", "information", "opinion"]
 
@@ -149,10 +243,21 @@ def main():
     results = classifier.classify_batch(texts, batch_size=2)
 
     # Print results
-    for result in results:
-        print(f"Text: {result['text']}")
-        print(f"Labels: {result['labels']}")
-        print(f"Scores: {result['scores']}\n")
+    print(results)
+
+
+    """
+    Example of how to use the ActionabilityClassifier class.
+    """
+
+    # Initialize classifier
+    classifier = CamouflageClassifier(model_name="meta-llama/Llama-3.2-3B-Instruct", device="cuda")
+
+    # Perform classification
+    results = classifier.classify_batch(texts, batch_size=2)
+
+    # Print results
+    print(results)
 
 
 if __name__ == "__main__":
