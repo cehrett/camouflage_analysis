@@ -127,7 +127,7 @@ def topic_modeling_pipeline(messages: pd.Series, n_topics: int = None) -> BERTop
     preprocessed_messages = preprocess_messages(messages)
 
     # Perform topic modeling
-    topic_model, _, _ = perform_topic_modeling(preprocessed_messages, n_topics=n_topics)
+    topic_model, _ = perform_topic_modeling(preprocessed_messages, n_topics=n_topics)
 
     return topic_model
 

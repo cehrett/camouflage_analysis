@@ -143,20 +143,20 @@ class CamouflageClassifier:
         self.model = AutoModelForCausalLM.from_pretrained(model_name, device_map="auto")
         self.device = device
         self.base_messages = [
-            {"role": "system", "content": "You are a helpful assistant that classifies social media posts as either \"Camouflage\" or \"Influence\".\n\n# Background:\nOnline influence campaigns make social media posts of two types. One, \"Influence\", is posts that serve the main purpose of the influence campaign. These are posts that attempt to sway public opinion about some topic of import to the organization perpetrating the influence operation. The other, \"Camouflage\", is posts that serve a secondary purpose. The goal of these posts is to make the accounts in the campaign appear more legitimate. The goal here is to make the posts appear to be coming from an authentic, genuine user, so that the same account's Influence posts will be taken more seriously by readers online.\n\n# Task:\nYour task is as follows. The user will submit a social media post. You respond with either \"Camouflage\" or \"Influence\", followed by a clear summary of why you provided that label."},
+            {"role": "system", "content": "You are a helpful assistant that classifies social media posts as either \"Camouflage\" or \"Influence\".\n\n# Background:\nOnline influence campaigns make social media posts of two types. One, \"Influence\", is posts that serve the political goals of the influence campaign. These are posts that attempt to sway public opinion about some political topic of import to the organization perpetrating the influence operation. The other, \"Camouflage\", is posts that serve a secondary purpose. The goal of these posts is to make the accounts in the campaign appear more legitimate. The goal here is to make the posts appear to be coming from an authentic, genuine user, so that the same account's Influence posts will be taken more seriously by readers online. Camouflage posts might be about any topic; notably, sports.\n\n# Task:\nYour task is as follows. The user will submit a social media post. You respond with either \"Camouflage\" or \"Influence\", followed by a clear summary of why you provided that label."},
             {"role": "user", "content": "Ready for the freakin' weeken'! 🎉🍻"},
             {"role": "assistant", "content": "Camouflage. Reason: The post is a casual expression of relatable sentiment about the weekend."},
             {"role": "user", "content": "Can someone please explain to me why it's okay to call Trump racist but not Harris? ELI5"},
             {"role": "assistant", "content": "Influence. Reason: The post implies that a particular political stance is hypocritical."},
-            {"role": "user", "content": "Imagine not buying PluffCoin at this point. Why not choose to be rich? I don't get it"},
-            {"role": "assistant", "content": "Influence. Reason: The post is promoting a specific financial investment."},
+            # {"role": "user", "content": "Imagine not buying PluffCoin at this point. Why not choose to be rich? I don't get it"},
+            # {"role": "assistant", "content": "Influence. Reason: The post is promoting a specific financial investment."},
             {"role": "user", "content": "Wait a sec... \"Harris, Kamala\" -> \"Harry's common, lol\" -> The Potters are not wizards -> Harry is a muggle -> The whole series is a fever dream confirmed??? makes u think 🤔"},
             {"role": "assistant", "content": "Camouflage. Reason: The post is a joking, speculative interpretation of a popular cultural reference."},
-            {"role": "user", "content": "Arrrgh no Nintendo! FPS games DO NOT BELONG IN THE ZELDA FRANCHISE! #NotMyZelda #disgusted"},
+            {"role": "user", "content": "Arrrgh no, Nintendo! FPS games DO NOT BELONG IN THE ZELDA FRANCHISE! #NotMyZelda #disgusted"},
             {"role": "assistant", "content": "Camouflage. Reason: The post expresses relatable frustration about a casual matter."},
         ]
 
-    def classify_batch(self, texts: List[str], batch_size: int = 16) -> List[dict]:
+    def classify_batch(self, texts: List[str], batch_size: int = 32) -> List[dict]:
         """
         Perform camouflage classification on a batch of texts.
         
@@ -187,7 +187,7 @@ class CamouflageClassifier:
                 with torch.no_grad():
                     outputs = self.model.generate(
                         **model_inputs,
-                        max_new_tokens=20,
+                        max_new_tokens=8,
                         return_dict_in_generate=True,
                         output_scores=True
                     )

@@ -6,7 +6,7 @@
 #SBATCH --cpus-per-task=1
 #SBATCH --mem=24GB
 #SBATCH --ntasks=1
-#SBATCH --time=08:00:00
+#SBATCH --time=12:00:00
 
 # Load necessary modules
 module load miniforge3

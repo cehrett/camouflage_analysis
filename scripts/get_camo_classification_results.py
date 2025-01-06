@@ -13,6 +13,6 @@ import camouflage_analysis.src.classification.zero_shot as zero_shot
 
 LLM = zero_shot.CamouflageClassifier()
 
-results = LLM.classify_batch(cm.tolist(), batch_size=32)
+results = LLM.classify_batch(cm.tolist(), batch_size=128)
 
 results.to_csv(os.path.join('camouflage_analysis','data','camouflage_classification_results.csv'), index=False)
