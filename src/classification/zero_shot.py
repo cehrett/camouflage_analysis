@@ -189,7 +189,8 @@ class CamouflageClassifier:
                         **model_inputs,
                         max_new_tokens=8,
                         return_dict_in_generate=True,
-                        output_scores=True
+                        output_scores=True,
+                        pad_token_id=self.tokenizer.eos_token_id
                     )
                     generated_texts = self.tokenizer.batch_decode(outputs.sequences, skip_special_tokens=True)
 
